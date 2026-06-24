@@ -1,0 +1,105 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local targetFruit = "Rainbow Strawberry"  -- ← Замени на точное имя фрукта
+local DEBOUNCE = 1.8
+
+local lastDupe = 0
+
+-- UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 340, 0, 280)
+Frame.Position = UDim2.new(0.5, -170, 0.5, -140)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "PHANTOM GAG2 DUPE"
+Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Title.TextColor3 = Color3.fromRGB(255, 40, 40)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 20
+Title.Parent = Frame
+
+local DupeButton = Instance.new("TextButton")
+DupeButton.Size = UDim2.new(0.9, 0, 0, 80)
+DupeButton.Position = UDim2.new(0.05, 0, 0, 70)
+DupeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+DupeButton.Text = "ДЮП ФРУКТА (F в руке)"
+DupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DupeButton.TextSize = 18
+DupeButton.Font = Enum.Font.SourceSansBold
+DupeButton.Parent = Frame
+
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(0.9, 0, 0, 60)
+Status.Position = UDim2.new(0.05, 0, 0, 170)
+Status.BackgroundTransparency = 1
+Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+Status.TextSize = 16
+Status.TextWrapped = true
+Status.Parent = Frame
+
+local function getFruitInHand()
+    if not LocalPlayer.Character then return nil end
+    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if not humanoid then return nil end
+    local tool = humanoid:FindFirstChildOfClass("Tool") or LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if tool and tool.Name:find(targetFruit) then
+        return tool
+    end
+    return nil
+end
+
+local function performDupe()
+    local now = tick()
+    if now - lastDupe < DEBOUNCE then 
+        Status.Text = "Подожди... анти-спам"
+        return 
+    end
+    lastDupe = now
+
+    local fruit = getFruitInHand()
+    if not fruit then
+        Status.Text = "Ошибка: Возьми " .. targetFruit .. " в руку!"
+        return
+    end
+
+    Status.Text = "Дюп " .. fruit.Name .. " запущен..."
+
+    pcall(function()
+        local clone = fruit:Clone()
+        clone.Parent = LocalPlayer.Backpack
+
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+        local mainRemote = remotes:FindFirstChild("Harvest") or remotes:FindFirstChild("Collect") 
+                        or remotes:FindFirstChild("GiveItem") or remotes:FindFirstChild("InventoryEvent")
+
+        if mainRemote then
+            mainRemote:FireServer(fruit, 4)  -- 4 копии — безопасное количество
+            wait(0.25)
+            Status.Text = "Успешно! +4 " .. fruit.Name
+        else
+            Status.Text = "Remote не найден. Клон добавлен в Backpack."
+        end
+    end)
+end
+
+DupeButton.MouseButton1Click:Connect(performDupe)
+
+-- Горячая клавиша F для удобства
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp or input.KeyCode \~= Enum.KeyCode.F then return end
+    performDupe()
+end)
+
+print("PHANTOM: UI с кнопкой дюпа готов. Нажми кнопку или F когда фрукт в руке.")
